@@ -1,0 +1,85 @@
+-- This schema is designed based on the sample data provided in the image.
+-- The design has been normalized to ensure data integrity and reduce redundancy,
+-- particularly by splitting the sales data into transaction headers and line items.
+
+CREATE TABLE Staff (
+    -- Primary Key: 'staff_id' is a unique identifier for each staff member.
+    -- SERIAL is used for auto-incrementing integers.
+    staff_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    position VARCHAR(100),
+    start_date DATE,
+    location VARCHAR(100)
+);
+
+CREATE TABLE SalesOutlet (
+    -- Primary Key: 'sales_outlet_id' is a unique identifier for each sales outlet.
+    sales_outlet_id SERIAL PRIMARY KEY,
+    type VARCHAR(50) NOT NULL,
+    -- Alternate Key: The 'address' is likely to be unique for each outlet and is a good candidate for a unique constraint.
+    address VARCHAR(255) UNIQUE NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    telephone VARCHAR(20),
+    postal_code VARCHAR(10),
+    -- Foreign Key: 'manager_id' references a staff member who manages the outlet. It can be NULL if no manager is currently assigned.
+    manager_id INT,
+    CONSTRAINT fk_outlet_manager FOREIGN KEY (manager_id) REFERENCES Staff(staff_id) ON DELETE SET NULL
+);
+
+CREATE TABLE Customer (
+    -- Primary Key: 'customer_id' is a unique identifier for each customer.
+    customer_id SERIAL PRIMARY KEY,
+    customer_name VARCHAR(255) NOT NULL,
+    -- Alternate Key: 'customer_email' must be unique for each customer.
+    customer_email VARCHAR(255) UNIQUE NOT NULL,
+    customer_since DATE,
+    customer_card_number VARCHAR(20),
+    birthdate DATE,
+    gender CHAR(1)
+);
+
+CREATE TABLE Product (
+    -- Primary Key: 'product_id' is a unique identifier for each product.
+    product_id SERIAL PRIMARY KEY,
+    product_category VARCHAR(100) NOT NULL,
+    product_type VARCHAR(100),
+    -- Alternate Key: 'product_name' should be unique to avoid confusion.
+    product_name VARCHAR(255) UNIQUE NOT NULL,
+    description TEXT,
+    price NUMERIC(10, 2) NOT NULL
+);
+
+CREATE TABLE SalesTransaction (
+    -- Primary Key: 'transaction_id' is a unique identifier for each sales transaction event.
+    transaction_id SERIAL PRIMARY KEY,
+    transaction_time TIMESTAMP NOT NULL, -- Combined date and time for precision.
+
+    -- Foreign Key: Links to the outlet where the transaction occurred. A transaction must have an outlet.
+    sales_outlet_id INT NOT NULL,
+    -- Foreign Key: Links to the staff member who processed the transaction. A transaction must have a staff member.
+    staff_id INT NOT NULL,
+    -- Foreign Key: Links to the customer. This is nullable to allow for guest/anonymous purchases.
+    customer_id INT,
+
+    CONSTRAINT fk_transaction_outlet FOREIGN KEY (sales_outlet_id) REFERENCES SalesOutlet(sales_outlet_id),
+    CONSTRAINT fk_transaction_staff FOREIGN KEY (staff_id) REFERENCES Staff(staff_id),
+    CONSTRAINT fk_transaction_customer FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
+);
+
+CREATE TABLE SalesItem (
+    -- This is a junction table representing the line items of a transaction.
+    -- Composite Primary Key: The combination of a transaction and a product must be unique within a single sale.
+    transaction_id INT NOT NULL,
+    product_id INT NOT NULL,
+
+    quantity INT NOT NULL CHECK (quantity > 0),
+    -- Storing the price here captures the price at the time of sale, which may differ from the current product price.
+    price NUMERIC(10, 2) NOT NULL,
+
+    PRIMARY KEY (transaction_id, product_id),
+    -- Foreign Key: Links back to the main transaction record. If a transaction is deleted, its items are also deleted.
+    CONSTRAINT fk_item_transaction FOREIGN KEY (transaction_id) REFERENCES SalesTransaction(transaction_id) ON DELETE CASCADE,
+    -- Foreign Key: Links to the product being sold.
+    CONSTRAINT fk_item_product FOREIGN KEY (product_id) REFERENCES Product(product_id)
+);
