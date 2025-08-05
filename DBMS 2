@@ -1,0 +1,51 @@
+erDiagram
+    SalesOutlet {
+        INT sales_outlet_id PK "Primary Key"
+        VARCHAR type
+        VARCHAR address
+        VARCHAR city
+        VARCHAR telephone
+        VARCHAR postal_code
+        INT manager_id FK "Foreign Key"
+    }
+
+    Staff {
+        INT staff_id PK "Primary Key"
+        VARCHAR first_name
+        VARCHAR last_name
+        VARCHAR position
+    }
+
+    Customer {
+        INT customer_id PK "Primary Key"
+        VARCHAR customer_name
+        VARCHAR customer_email
+    }
+
+    Product {
+        INT product_id PK "Primary Key"
+        VARCHAR product_name
+        TEXT description
+        NUMERIC price
+    }
+
+    SalesTransaction {
+        INT transaction_id PK "Primary Key"
+        TIMESTAMP transaction_time
+        INT sales_outlet_id FK "Foreign Key"
+        INT staff_id FK "Foreign Key"
+        INT customer_id FK "Foreign Key"
+    }
+
+    SalesItem {
+        INT transaction_id PK, FK "Composite PK, FK"
+        INT product_id PK, FK "Composite PK, FK"
+        INT quantity
+        NUMERIC price "Price at time of sale"
+    }
+
+    SalesOutlet ||--o{ SalesTransaction : "has"
+    Staff ||--o{ SalesTransaction : "processes"
+    Customer ||--o{ SalesTransaction : "makes"
+    SalesTransaction ||--|{ SalesItem : "contains"
+    Product ||--o{ SalesItem : "is sold as"
